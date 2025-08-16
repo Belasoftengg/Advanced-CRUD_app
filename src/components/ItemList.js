@@ -11,10 +11,14 @@ export default function ItemList({ items, onEdit, onSoftDelete, onRestore, selec
     setEditValues({ name: item.name, quantity: item.quantity });
   };
 
-  const saveEdit = (id) => {
-    onEdit(id, editValues);
-    setEditingId(null);
-  };
+ const saveEdit = (id) => {
+  if (editValues.quantity < 1) {
+    alert("Quantity must be at least 1");
+    return;
+  }
+  onEdit(id, editValues);
+  setEditingId(null);
+};
 
   const toggleSelect = (id) => {
     if (selected.includes(id)) setSelected(selected.filter(s => s !== id));
