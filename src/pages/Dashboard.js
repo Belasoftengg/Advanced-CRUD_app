@@ -4,7 +4,7 @@ import ItemForm from "../components/ItemForm";
 import ItemList from "../components/ItemList";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Sun, Moon } from "lucide-react";
 
 export default function Dashboard() {
   const [items, setItems] = useState([]);
@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [pages, setPages] = useState(1);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
   const limit = 5;
 
   const fetchItems = async () => {
@@ -24,7 +26,7 @@ export default function Dashboard() {
       });
       setItems(data.items);
       setPages(data.pages);
-    } catch (e) {
+    } catch {
       toast.error("Failed to load");
     } finally {
       setLoading(false);
@@ -36,47 +38,44 @@ export default function Dashboard() {
     // eslint-disable-next-line
   }, [q, sort, page, includeDeleted]);
 
-  // Add new item
   const onCreated = (item) => {
     if (page === 1) setItems(prev => [item, ...prev].slice(0, limit));
     toast.success("✅ Added!");
   };
 
-  // Inline edit (name or quantity)
   const onEdit = async (id, body) => {
     const prevItems = [...items];
-    setItems(prev => prev.map(i => i._id === id ? { ...i, ...body } : i)); // Optimistic update
+    setItems(prev => prev.map(i => i._id === id ? { ...i, ...body } : i));
     try {
       const { data } = await api.put(`/items/${id}`, body);
       setItems(prev => prev.map(i => i._id === id ? data : i));
       toast.success("Updated!");
     } catch {
-      setItems(prevItems); // rollback
+      setItems(prevItems);
       toast.error("Update failed");
     }
   };
 
-  // Soft delete
-  const onSoftDelete = async (id) => {
+  const onSoftDelete = async (ids) => {
     const prevItems = [...items];
-    setItems(prev => prev.map(i => i._id === id ? { ...i, deleted: true } : i));
+    setItems(prev => prev.map(i => ids.includes(i._id) ? { ...i, deleted: true } : i));
     try {
-      await api.delete(`/items/${id}`);
-      toast.success("Soft-deleted!");
+      await Promise.all(ids.map(id => api.delete(`/items/${id}`)));
+      toast.success("Deleted!");
+      setSelected([]);
     } catch {
       setItems(prevItems);
       toast.error("Delete failed");
     }
   };
 
-  // Restore
-  const onRestore = async (id) => {
+  const onRestore = async (ids) => {
     const prevItems = [...items];
-    setItems(prev => prev.map(i => i._id === id ? { ...i, deleted: false } : i));
+    setItems(prev => prev.map(i => ids.includes(i._id) ? { ...i, deleted: false } : i));
     try {
-      const { data } = await api.patch(`/items/${id}/restore`);
-      setItems(prev => prev.map(i => i._id === id ? data.item : i));
+      await Promise.all(ids.map(id => api.patch(`/items/${id}/restore`)));
       toast.success("Restored!");
+      setSelected([]);
     } catch {
       setItems(prevItems);
       toast.error("Restore failed");
@@ -84,53 +83,54 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4">
+    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-800"} min-h-screen py-6 px-4 transition-colors duration-300`}>
+
       {/* Header */}
-      <motion.div
-        className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h2 className="text-2xl font-bold text-gray-800">📦 Items Dashboard</h2>
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              className="pl-8 pr-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-400 outline-none"
-              placeholder="Search..."
-              value={q}
-              onChange={(e) => {
-                setPage(1);
-                setQ(e.target.value);
-              }}
-            />
-          </div>
+     <motion.div
+  className="relative flex items-center mb-6"
+  initial={{ opacity: 0, y: -20 }}
+  animate={{ opacity: 1, y: 0 }}
+>
+ 
 
-          <select
-            className="px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-400 outline-none"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option value="-createdAt">Newest</option>
-            <option value="createdAt">Oldest</option>
-            <option value="name">Name A-Z</option>
-            <option value="-name">Name Z-A</option>
-            <option value="-quantity">Qty High-Low</option>
-            <option value="quantity">Qty Low-High</option>
-          </select>
+  {/* Right Controls */}
+  <div className="ml-auto flex gap-3 items-center">
 
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => setIncludeDeleted(e.target.checked)}
-              className="h-4 w-4 text-indigo-500 rounded border-gray-300"
-            />
-            Include deleted
-          </label>
-        </div>
-      </motion.div>
+    {/* Sorting */}
+    <select
+      className="px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-400 outline-none"
+      value={sort}
+      onChange={(e) => setSort(e.target.value)}
+    >
+      <option value="-createdAt">Newest</option>
+      <option value="createdAt">Oldest</option>
+      <option value="name">Name A-Z</option>
+      <option value="-name">Name Z-A</option>
+      <option value="-quantity">Qty High-Low</option>
+      <option value="quantity">Qty Low-High</option>
+    </select>
+
+    {/* Include deleted */}
+    {/* <label className=" gap-6 cursor-pointer text-sm">
+      <input
+        type="checkbox"
+        checked={includeDeleted}
+        onChange={(e) => setIncludeDeleted(e.target.checked)}
+        className="h-4 w-4 text-indigo-500 rounded border-gray-300"
+      />
+      Include deleted
+    </label> */}
+
+    {/* Dark/Light Mode */}
+    <button
+      onClick={() => setDarkMode(prev => !prev)}
+      className="p-2 rounded-full border"
+    >
+      {darkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
+    </button>
+  </div>
+</motion.div>
+
 
       {/* Form */}
       <motion.div
@@ -142,6 +142,15 @@ export default function Dashboard() {
         <ItemForm onCreated={onCreated} />
       </motion.div>
 
+      {/* Bulk Actions */}
+      {selected.length > 0 && (
+        <div className="mb-3 flex gap-2">
+          <button className="btn btn-sm btn-danger" onClick={() => onSoftDelete(selected)}>Delete Selected</button>
+          <button className="btn btn-sm btn-success" onClick={() => onRestore(selected)}>Restore Selected</button>
+          <span className="ml-2 text-sm">{selected.length} item(s) selected</span>
+        </div>
+      )}
+
       {/* Items List */}
       {loading ? (
         <motion.div
@@ -152,16 +161,15 @@ export default function Dashboard() {
           Loading...
         </motion.div>
       ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ staggerChildren: 0.2 }}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ staggerChildren: 0.2 }}>
           <ItemList
             items={items}
+            selected={selected}
+            setSelected={setSelected}
             onEdit={onEdit}
             onSoftDelete={onSoftDelete}
             onRestore={onRestore}
+            darkMode={darkMode}
           />
         </motion.div>
       )}
