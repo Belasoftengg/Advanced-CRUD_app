@@ -159,60 +159,8 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Pagination */}
-      <motion.nav
-        className="flex justify-center mt-8"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <ul className="flex gap-2">
-          {/* Prev Button */}
-          <li>
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${
-                page === 1
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-white hover:bg-indigo-100 text-gray-700 border-gray-300"
-              }`}
-            >
-              <ChevronLeft size={16} /> Prev
-            </button>
-          </li>
+     
 
-          {/* Page Numbers */}
-          {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
-            <li key={n}>
-              <button
-                onClick={() => setPage(n)}
-                className={`px-3 py-1 rounded-lg border transition ${
-                  n === page
-                    ? "bg-indigo-500 text-white border-indigo-500"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-indigo-100"
-                }`}
-              >
-                {n}
-              </button>
-            </li>
-          ))}
-
-          {/* Next Button */}
-          <li>
-            <button
-              disabled={page === pages}
-              onClick={() => setPage((p) => Math.min(pages, p + 1))}
-              className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${
-                page === pages
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-white hover:bg-indigo-100 text-gray-700 border-gray-300"
-              }`}
-            >
-              Next <ChevronRight size={16} />
-            </button>
-          </li>
-        </ul>
-      </motion.nav>
     </div>
   );
 }
