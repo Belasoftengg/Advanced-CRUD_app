@@ -110,17 +110,6 @@ export default function Dashboard() {
       <option value="quantity">Qty Low-High</option>
     </select>
 
-    {/* Include deleted */}
-    {/* <label className=" gap-6 cursor-pointer text-sm">
-      <input
-        type="checkbox"
-        checked={includeDeleted}
-        onChange={(e) => setIncludeDeleted(e.target.checked)}
-        className="h-4 w-4 text-indigo-500 rounded border-gray-300"
-      />
-      Include deleted
-    </label> */}
-
     {/* Dark/Light Mode */}
     <button
       onClick={() => setDarkMode(prev => !prev)}
