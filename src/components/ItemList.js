@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaEdit, FaTrashAlt, FaUndo } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 export default function ItemList({ items, onEdit, onSoftDelete, onRestore }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  const startEdit = (id, currentQty) => {
+    setEditingId(id);
+    setEditValue(currentQty);
+  };
+
+  const saveEdit = (id) => {
+    onEdit(id, { quantity: Number(editValue) });
+    setEditingId(null);
+  };
+
   return (
     <div className="table-responsive shadow-sm">
       <table className="table table-hover table-bordered align-middle">
@@ -15,57 +29,59 @@ export default function ItemList({ items, onEdit, onSoftDelete, onRestore }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((i) => (
-            <tr key={i._id} className={i.deleted ? 'table-warning text-muted' : ''}>
+          {items.map(i => (
+            <motion.tr
+              key={i._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={i.deleted ? 'table-warning text-muted' : ''}
+            >
               <td className="fw-semibold">{i.name}</td>
-              <td>{i.quantity}</td>
+              <td>
+                {editingId === i._id ? (
+                  <input
+                    type="number"
+                    value={editValue}
+                    min={1}
+                    className="form-control form-control-sm"
+                    onChange={e => setEditValue(e.target.value)}
+                    onBlur={() => saveEdit(i._id)}
+                    onKeyDown={(e) => e.key === 'Enter' && saveEdit(i._id)}
+                    autoFocus
+                  />
+                ) : (
+                  i.quantity
+                )}
+              </td>
               <td>{new Date(i.createdAt).toLocaleString()}</td>
               <td>
-                <span
-                  className={`badge rounded-pill ${i.deleted ? 'bg-danger' : 'bg-success'}`}
-                >
+                <span className={`badge rounded-pill ${i.deleted ? 'bg-danger' : 'bg-success'}`}>
                   {i.deleted ? 'Deleted' : 'Active'}
                 </span>
               </td>
               <td>
                 <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    title="Edit Quantity"
-                    onClick={() => {
-                      const newQty = prompt('New quantity', i.quantity);
-                      if (newQty) onEdit(i._id, { quantity: Number(newQty) });
-                    }}
-                  >
-                    <FaEdit /> Edit
-                  </button>
-
+                  {!i.deleted && (
+                    <button className="btn btn-sm btn-outline-secondary" onClick={() => startEdit(i._id, i.quantity)}>
+                      <FaEdit /> Edit
+                    </button>
+                  )}
                   {!i.deleted ? (
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      title="Soft Delete"
-                      onClick={() => onSoftDelete(i._id)}
-                    >
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => onSoftDelete(i._id)}>
                       <FaTrashAlt /> Delete
                     </button>
                   ) : (
-                    <button
-                      className="btn btn-sm btn-outline-success"
-                      title="Restore"
-                      onClick={() => onRestore(i._id)}
-                    >
+                    <button className="btn btn-sm btn-outline-success" onClick={() => onRestore(i._id)}>
                       <FaUndo /> Restore
                     </button>
                   )}
                 </div>
               </td>
-            </tr>
+            </motion.tr>
           ))}
         </tbody>
       </table>
-      {items.length === 0 && (
-        <div className="text-center p-4 text-muted fst-italic">No items found</div>
-      )}
+      {items.length === 0 && <div className="text-center p-4 text-muted fst-italic">No items found</div>}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import ItemForm from "../components/ItemForm";
 import ItemList from "../components/ItemList";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search } from "lucide-react";
 
 export default function Dashboard() {
   const [items, setItems] = useState([]);
@@ -36,39 +36,49 @@ export default function Dashboard() {
     // eslint-disable-next-line
   }, [q, sort, page, includeDeleted]);
 
+  // Add new item
   const onCreated = (item) => {
-    if (page === 1) setItems((prev) => [item, ...prev].slice(0, limit));
-    toast.success("Added!");
+    if (page === 1) setItems(prev => [item, ...prev].slice(0, limit));
+    toast.success("✅ Added!");
   };
 
+  // Inline edit (name or quantity)
   const onEdit = async (id, body) => {
+    const prevItems = [...items];
+    setItems(prev => prev.map(i => i._id === id ? { ...i, ...body } : i)); // Optimistic update
     try {
       const { data } = await api.put(`/items/${id}`, body);
-      setItems((prev) => prev.map((i) => (i._id === id ? data : i)));
-      toast.success("Updated");
+      setItems(prev => prev.map(i => i._id === id ? data : i));
+      toast.success("Updated!");
     } catch {
+      setItems(prevItems); // rollback
       toast.error("Update failed");
     }
   };
 
+  // Soft delete
   const onSoftDelete = async (id) => {
+    const prevItems = [...items];
+    setItems(prev => prev.map(i => i._id === id ? { ...i, deleted: true } : i));
     try {
       await api.delete(`/items/${id}`);
-      setItems((prev) =>
-        prev.map((i) => (i._id === id ? { ...i, deleted: true } : i))
-      );
-      toast.success("Soft-deleted");
+      toast.success("Soft-deleted!");
     } catch {
+      setItems(prevItems);
       toast.error("Delete failed");
     }
   };
 
+  // Restore
   const onRestore = async (id) => {
+    const prevItems = [...items];
+    setItems(prev => prev.map(i => i._id === id ? { ...i, deleted: false } : i));
     try {
       const { data } = await api.patch(`/items/${id}/restore`);
-      setItems((prev) => prev.map((i) => (i._id === id ? data.item : i)));
-      toast.success("Restored");
+      setItems(prev => prev.map(i => i._id === id ? data.item : i));
+      toast.success("Restored!");
     } catch {
+      setItems(prevItems);
       toast.error("Restore failed");
     }
   };
@@ -83,7 +93,6 @@ export default function Dashboard() {
       >
         <h2 className="text-2xl font-bold text-gray-800">📦 Items Dashboard</h2>
         <div className="flex flex-wrap gap-3 items-center">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-2.5 text-gray-400 w-4 h-4" />
             <input
@@ -98,7 +107,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Sorting */}
           <select
             className="px-3 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-400 outline-none"
             value={sort}
@@ -112,7 +120,6 @@ export default function Dashboard() {
             <option value="quantity">Qty Low-High</option>
           </select>
 
-          {/* Include deleted */}
           <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
             <input
               type="checkbox"
@@ -125,7 +132,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Item Form */}
+      {/* Form */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,9 +165,6 @@ export default function Dashboard() {
           />
         </motion.div>
       )}
-
-     
-
     </div>
   );
 }
